@@ -35,32 +35,63 @@ def main():
 
     weakGraphs.sort(key=lambda x: len(x), reverse=True)
 
-    subGraph = weakGraphs[1]
+
+    # iterate through all weakGraphs here, lay them out one on top of another
+    yPos = -3
+    for i in range(0, 3):
+        yPos += 3
+
+        digraph = functools.partial(gv.Digraph, graph_attr={"rankdir": "LR"}, format='svg') #"ordering":"out"
+        nodes = set()
+        for edgeTup in weakGraphs[i]:
+            nodes.add(edgeTup[0])
+            nodes.add(edgeTup[1])
+        nodes = list(nodes)
+        edges = weakGraphs[i]
+
+        add_edges(add_nodes(digraph(), nodes), edges).render('img/g4')
+
+        with open('img/g4.svg') as fd:
+            doc = xmltodict.parse(fd.read())
+
+            nodeYLocation = {}
+            for elem in doc["svg"]["g"]["g"]:
+                if elem["@class"] == "node":
+                    #(Cx, Cy) x, y coordinates of center, origin top left corner
+                    #(Rx, Ry) radius of ellipse along x, y axes
+                    nodeYLocation[elem["title"]] = int(elem["ellipse"]["@cy"])
+
+            #minNode = max(nodeYLocation, key=nodeYLocation.get)
+            #maxNode = min(nodeYLocation, key=nodeYLocation.get)
+            #diff = nodeYLocation[minNode] - nodeYLocation[maxNode]
+            #print diff/9.0
 
 
-    digraph = functools.partial(gv.Digraph, graph_attr={"rankdir": "LR"}, format='svg') #"ordering":"out"
-    nodes = set()
-    for edgeTup in subGraph:
-        nodes.add(edgeTup[0])
-        nodes.add(edgeTup[1])
-    nodes = list(nodes)
-    edges = subGraph
-
-    add_edges(add_nodes(digraph(), nodes), edges).render('img/g4')
+            #for every 24 change in y coordinate, place a node, in json
+            for key in nodeYLocation:
+                nodeYLocation[key] /= -9
+                nodeYLocation[key] += yPos
 
 
-    """
-    with open('img/g4.svg') as fd:
-        doc = xmltodict.parse(fd.read())
+            with open("blah.json") as jsonF:
+                jsonData = eval(jsonF.read())
+                for lineDict in jsonData:
+                    for node in lineDict["values"]:
+                        try:
+                            node["position"] = nodeYLocation[node["name"]]
+                        except KeyError:
+                            continue
 
-        #print doc["svg"]["g"]["g"].keys()
-
-        with open('img/data.json', 'w') as outfile:
-            json.dump(doc, outfile)
-    """
+                with open("img/girl_names_us.js", "w") as outF:
+                    json.dump(jsonData, outF, indent=4, sort_keys=True, separators=(',', ': '))
 
 
+                data = None
+                with open("img/girl_names_us.js", "r") as original:
+                    data = original.read().lstrip("[")
 
+                with open("img/girl_names_us.js", "w") as modified:
+                    modified.write("var girls = [\n" + data)
 
 
 

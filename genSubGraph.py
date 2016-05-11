@@ -8,7 +8,7 @@ def add_nodes(graph, nodes):
         if isinstance(n, tuple):
             graph.node(n[0], **n[1])
         else:
-            graph.node(n)
+            graph.node(n) #_attributes={"style":"filled", "fillcolor":"white", "tooltip": "brightness field"}
     return graph
 
 
@@ -23,33 +23,38 @@ def add_edges(graph, edges):
 
 def main():
     
-    inF = open('graphEdges', 'r')        
+    inF = open('graphEdges', 'r')
     tuples = eval(inF.readline())
     inF.close()
 
     G = nx.DiGraph(tuples)
-    weakGraphs = []
+    weakConnComponents = []
     for w in nx.weakly_connected_component_subgraphs(G):
-        weakGraphs.append(w.edges())
+        weakConnComponents.append(w.edges())
 
+    weakConnComponents.sort(key=lambda x: len(x), reverse=True)
 
-    weakGraphs.sort(key=lambda x: len(x), reverse=True)
+    #traverse weak component
+    """
+    for w in nx.weakly_connected_component_subgraphs(G):
+    sorted(nx.weakly_connected_component_subgraphs(G), key=len, reverse = True)]
+    """
 
+    # iterate through all weakConnComponents here, lay them out one on top of another
+    yPos = 0
+    for i in range(0, 1): #len(weakConnComponents)
 
-    # iterate through all weakGraphs here, lay them out one on top of another
-    yPos = -3
-    for i in range(0, 3):
-        yPos += 3
-
-        digraph = functools.partial(gv.Digraph, graph_attr={"rankdir": "LR"}, format='svg') #"ordering":"out"
+        digraph = functools.partial(gv.Digraph, graph_attr={"rankdir": "LR", }, format='svg') #"ordering":"out"
         nodes = set()
-        for edgeTup in weakGraphs[i]:
+        for edgeTup in weakConnComponents[i]:
             nodes.add(edgeTup[0])
             nodes.add(edgeTup[1])
         nodes = list(nodes)
-        edges = weakGraphs[i]
+        edges = weakConnComponents[i]
+
 
         add_edges(add_nodes(digraph(), nodes), edges).render('img/g4')
+
 
         with open('img/g4.svg') as fd:
             doc = xmltodict.parse(fd.read())
@@ -72,26 +77,37 @@ def main():
                 nodeYLocation[key] /= -9
                 nodeYLocation[key] += yPos
 
+            yPos += nodeYLocation[max(nodeYLocation, key=nodeYLocation.get)]
 
-            with open("blah.json") as jsonF:
-                jsonData = eval(jsonF.read())
+            print yPos
+
+            # assert len(nodeYLocation.keys()) len(nodes)
+
+            jsonData = None
+            tempList = []
+            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js") as jsonF:
+                jsonData = eval(jsonF.read().split("girls = ")[-1])
+
                 for lineDict in jsonData:
                     for node in lineDict["values"]:
+
+                        tempList.append(node["name"])
                         try:
-                            node["position"] = nodeYLocation[node["name"]]
+                            node["position"] = nodeYLocation[node["name"]] + tempList.count(node["name"]) * 0.0001
                         except KeyError:
                             continue
 
-                with open("img/girl_names_us.js", "w") as outF:
-                    json.dump(jsonData, outF, indent=4, sort_keys=True, separators=(',', ': '))
 
 
-                data = None
-                with open("img/girl_names_us.js", "r") as original:
-                    data = original.read().lstrip("[")
+            with open('/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js', 'w') as outF:
+                json.dump(jsonData, outF, indent=4, sort_keys=True, separators=(',', ': '))
 
-                with open("img/girl_names_us.js", "w") as modified:
-                    modified.write("var girls = [\n" + data)
+            data = None
+            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js", "r") as original:
+                data = original.read().lstrip("[")
+
+            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js", "w") as modified:
+                modified.write("var girls = [\n" + data)
 
 
 

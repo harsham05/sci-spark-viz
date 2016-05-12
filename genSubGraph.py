@@ -1,4 +1,4 @@
-import xmltodict, json, functools
+import xmltodict, json, functools, sys
 import networkx as nx
 from pprint import pprint
 import graphviz as gv
@@ -21,9 +21,9 @@ def add_edges(graph, edges):
     return graph
 
 
-def main():
+def main(argFile, maxLimit, edgeList):
     
-    inF = open('graphEdges', 'r')
+    inF = open(edgeList, 'r')
     tuples = eval(inF.readline())
     inF.close()
 
@@ -42,7 +42,7 @@ def main():
 
     # iterate through all weakConnComponents here, lay them out one on top of another
     yPos = 0
-    for i in range(0, 1): #len(weakConnComponents)
+    for i in range(0, int(maxLimit)): #len(weakConnComponents)
 
         digraph = functools.partial(gv.Digraph, graph_attr={"rankdir": "LR", }, format='svg') #"ordering":"out"
         nodes = set()
@@ -53,10 +53,10 @@ def main():
         edges = weakConnComponents[i]
 
 
-        add_edges(add_nodes(digraph(), nodes), edges).render('img/g4')
+        add_edges(add_nodes(digraph(), nodes), edges).render('img/g' + str(i))
 
 
-        with open('img/g4.svg') as fd:
+        with open('img/g{0}.svg'.format(i)) as fd:
             doc = xmltodict.parse(fd.read())
 
             nodeYLocation = {}
@@ -85,7 +85,7 @@ def main():
 
             jsonData = None
             tempList = []
-            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js") as jsonF:
+            with open(argFile) as jsonF:
                 jsonData = eval(jsonF.read().split("girls = ")[-1])
 
                 for lineDict in jsonData:
@@ -99,14 +99,14 @@ def main():
 
 
 
-            with open('/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js', 'w') as outF:
+            with open(argFile, 'w') as outF:
                 json.dump(jsonData, outF, indent=4, sort_keys=True, separators=(',', ': '))
 
             data = None
-            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js", "r") as original:
+            with open(argFile, "r") as original:
                 data = original.read().lstrip("[")
 
-            with open("/Users/hmanjuna/D3_CloudElements/static/js/girl_names_us.js", "w") as modified:
+            with open(argFile, "w") as modified:
                 modified.write("var girls = [\n" + data)
 
 
@@ -140,7 +140,7 @@ def main():
     
     
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1], sys.argv[2], sys.argv[3])
 
 def getD3jsonObj():
 
